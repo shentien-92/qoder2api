@@ -44,7 +44,7 @@
                         <configuration>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>us.cubk.Main</mainClass>
+                                    <mainClass>us.cubk.OpenAiBridge</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>
