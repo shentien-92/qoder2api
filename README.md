@@ -30,18 +30,29 @@ mvn clean package
 
 ## 运行
 
+启动后监听 `http://127.0.0.1:8963/v1/chat/completions`
+
+### 方式一：本地凭据（推荐，支持企业用户）
+
+如果已登录过 Qoder CLI，程序会自动读取 `~/.qoder/.auth/` 下的凭据，直接启动即可：
+
+```bash
+java -jar target/qoder-client-0.1.0.jar
+```
+
+支持个人用户和企业（Teams）用户。可通过 `LocalAuth.main()` 查看本地凭据内容。
+
+### 方式二：Personal Access Token
+
+适用于个人用户，从 Qoder 设置页面生成 PAT 后传入：
+
 ```bash
 java -DQODER_PAT=<your_token> -jar target/qoder-client-0.1.0.jar
 ```
 
-启动后监听 `http://127.0.0.1:8963/v1/chat/completions`
+### 优先级
 
-### 获取 PAT
-
-Qoder 的 Personal Access Token。两种方式：
-
-1. **从本地凭据读取** — 如果已登录过 Qoder CLI，凭据存在 `~/.qoder/.auth/`，运行 `LocalAuth.main()` 可解密查看
-2. **从 Qoder 设置页面生成**
+`-DQODER_PAT` > 本地凭据。传了 PAT 就走 PAT 交换流程，没传则自动回退到本地凭据。
 
 ### 模型选择
 
