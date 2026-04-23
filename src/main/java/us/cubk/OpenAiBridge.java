@@ -32,6 +32,31 @@ public final class OpenAiBridge {
         var identity = new BearerBuilder.AuthIdentity(jt.path("name").asText(""), jt.path("id").asText(""), jt.path("id").asText(""), "", "", "", jt.path("userType").asText("personal_standard"), jt.path("securityOauthToken").asText(), jt.path("refreshToken").asText());
         this.sess = BearerBuilder.newSession(identity, mid, mtoken, mtype);
         this.bearerClient = new BearerApiClient(sess);
+        this.templateBase = loadTemplate();
+    }
+
+    public OpenAiBridge(JsonNode localAuth) throws Exception {
+        String mid = UUID.randomUUID().toString();
+        String mtoken = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString((UUID.randomUUID().toString() + UUID.randomUUID()).substring(0, 50).getBytes());
+        String mtype = UUID.randomUUID().toString().replace("-", "").substring(0, 18);
+        var identity = new BearerBuilder.AuthIdentity(
+                localAuth.path("name").asText(""),
+                localAuth.path("aid").asText(""),
+                localAuth.path("uid").asText(""),
+                localAuth.path("yx_uid").asText(""),
+                localAuth.path("organization_id").asText(""),
+                localAuth.path("organization_name").asText(""),
+                localAuth.path("user_type").asText("personal_standard"),
+                localAuth.path("security_oauth_token").asText(""),
+                localAuth.path("refresh_token").asText("")
+        );
+        System.out.println("[bridge] session for " + identity.name() + " (" + identity.uid() + ") type=" + identity.userType());
+        this.sess = BearerBuilder.newSession(identity, mid, mtoken, mtype);
+        this.bearerClient = new BearerApiClient(sess);
+        this.templateBase = loadTemplate();
+    }
+
+    private static JsonNode loadTemplate() throws Exception {
         String basePrompt = new String(java.nio.file.Files.readAllBytes(new File("baseprompt.json").toPath()));
         basePrompt = basePrompt.replace("{UUID1}",UUID.randomUUID().toString());
         basePrompt = basePrompt.replace("{UUID2}",UUID.randomUUID().toString());
@@ -39,7 +64,7 @@ public final class OpenAiBridge {
         basePrompt = basePrompt.replace("{UUID4}",UUID.randomUUID().toString());
         basePrompt = basePrompt.replace("{UUID5}",UUID.randomUUID().toString());
         basePrompt = basePrompt.replace("{TIME1}",String.valueOf(System.currentTimeMillis()));
-        this.templateBase = objectMapper.readTree(basePrompt);
+        return objectMapper.readTree(basePrompt);
     }
 
     public void start(int port) throws Exception {
@@ -242,11 +267,22 @@ public final class OpenAiBridge {
     }
 
     public static void run(String pat, int port) throws Exception {
+        OpenAiBridge bridge;
         if (pat == null || pat.isBlank()) {
             pat = System.getProperty("QODER_PAT");
-            if (pat == null || pat.isBlank()) throw new RuntimeException("Token required!");
         }
-        new OpenAiBridge(pat).start(port);
+        if (pat != null && !pat.isBlank()) {
+            bridge = new OpenAiBridge(pat);
+        } else {
+            try {
+                JsonNode localAuth = LocalAuth.readUserInfo();
+                System.out.println("[bridge] using local auth from ~/.qoder/.auth/");
+                bridge = new OpenAiBridge(localAuth);
+            } catch (Exception e) {
+                throw new RuntimeException("No PAT provided and local auth not available: " + e.getMessage());
+            }
+        }
+        bridge.start(port);
         Thread.currentThread().join();
     }
 
